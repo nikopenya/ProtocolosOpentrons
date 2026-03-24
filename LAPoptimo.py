@@ -93,7 +93,7 @@ def run(protocol: protocol_api.ProtocolContext):
     
     pipette.pick_up_tip(tipracks['A2'])
     for well, v_peg, v_lap, v_agua in muestras:
-        pipette.aspirate(v_peg, pegda_60.bottom(z=3))
+        pipette.aspirate(v_peg, pegda_60.bottom(z=15))
         protocol.delay(seconds=3) 
         pipette.move_to(pegda_60.top(z=5),speed=10)
         pipette.dispense(v_peg, plate[well].top(z=2))
@@ -111,7 +111,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for well, v_peg, v_lap, v_agua in muestras:
         if liquido_en_punta < (v_lap + 10):
             espacio_libre = vol_max_p200 - liquido_en_punta
-            pipette.aspirate(espacio_libre, lap_05.bottom(z=3))
+            pipette.aspirate(espacio_libre, lap_05.bottom(z=15))
             liquido_en_punta = vol_max_p200
         pipette.dispense(v_lap, plate[well].top(z=2))
         pipette.touch_tip(v_offset=-3, speed=5)#demasiado fuerte lol cambiar
@@ -119,7 +119,7 @@ def run(protocol: protocol_api.ProtocolContext):
         liquido_en_punta -= v_lap
     pipette.drop_tip(trash)
 
-    # --- 7. FINALIZACIÓN ---
+     # --- 7. FINALIZACIÓN ---
     protocol.comment("Iniciando agitación...")
     h_s.set_and_wait_for_shake_speed(1000)
     protocol.delay(minutes=2)
