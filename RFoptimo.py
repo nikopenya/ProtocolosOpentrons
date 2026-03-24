@@ -15,7 +15,7 @@ def run(protocol: protocol_api.ProtocolContext):
     trash = protocol.load_trash_bin("A3")
     tipracks = protocol.load_labware("opentrons_flex_96_tiprack_200ul", "B1")
     res = protocol.load_labware("custom_4_reservoir_90000ul", "D2")
-    res_tea = protocol.load_labware("custom_24_tuberack_6000ul", "D1")
+    res_2 = protocol.load_labware("custom_24_tuberack_6000ul", "D1")
     
     # Definimos el módulo como h_s
     h_s = protocol.load_module('heaterShakerModuleV1', 'D3') 
@@ -29,12 +29,12 @@ def run(protocol: protocol_api.ProtocolContext):
     h_s.close_labware_latch()
 
     # --- 4. DEFINICIÓN DE REACTIVOS ---
-    rf_04 = res['A1']
-    rf_01 = res['A2']
-    pegda_60 = res['A3']
+    rf_04 = res_2['B1']
+    rf_01 = res_2['B2']
+    pegda_60 = res_2['A1']
     agua = res['A4']
-    tea_5 = res_tea['A1']
-    tea_10 = res_tea['A2']
+    tea_5 = res_2['B3']
+    tea_10 = res_2['B4']
 
     # --- 5. DATOS DE VOLÚMENES ---
     vol_agua_peg_rf = [
@@ -100,6 +100,7 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("Distribuyendo Agua...")
     pipette.flow_rate.aspirate = 80
     pipette.flow_rate.dispense = 40
+    pipette.flow_rate.blow_out = 50
     pipette.pick_up_tip(tipracks['A1'])
     for well, v_agua, v_peg, v_rf in vol_agua_peg_rf:
         pipette.aspirate(v_agua, agua.bottom(z=3))
@@ -108,13 +109,15 @@ def run(protocol: protocol_api.ProtocolContext):
         protocol.delay(seconds=2)
     pipette.drop_tip(trash)
 
-    # PASO 2: PEGDA (Viscoso)
+    # PASO 2: PEGDA
     protocol.comment("Distribuyendo Pegda...")
     pipette.flow_rate.aspirate = 30
     pipette.flow_rate.dispense = 30
+    pipette.flow_rate.blow_out = 40
+    
     pipette.pick_up_tip(tipracks['A2'])
-    for well, v_agua, v_peg, v_rf in vol_agua_peg_rf:
-        pipette.aspirate(v_peg, pegda_60.bottom(z=3))
+    for well, v_peg, v_lap, v_agua in muestras:
+        pipette.aspirate(v_peg, pegda_60.bottom(z=15))
         protocol.delay(seconds=3) 
         pipette.move_to(pegda_60.top(z=5),speed=10)
         pipette.dispense(v_peg, plate[well].top(z=2))
@@ -131,10 +134,10 @@ def run(protocol: protocol_api.ProtocolContext):
     for well, v_tea5 in v_tea_5:
         if liquido_en_punta < (v_tea5 + 10):
             espacio_libre = vol_max_p200 - liquido_en_punta
-            pipette.aspirate(espacio_libre, tea_5.bottom(z=3))
+            pipette.aspirate(espacio_libre, tea_5.bottom(z=15))
             liquido_en_punta = vol_max_p200
         pipette.dispense(v_tea5, plate[well].top(z=2))
-        pipette.touch_tip(v_offset=-3)
+        pipette.touch_tip(v_offset=-3, speed=5)
         protocol.delay(seconds=2)
         liquido_en_punta -= v_tea5
     pipette.drop_tip(trash)
@@ -145,10 +148,10 @@ def run(protocol: protocol_api.ProtocolContext):
     for well, v_tea10 in v_tea_10:
        if liquido_en_punta < (v_tea10 + 10):
             espacio_libre = vol_max_p200 - liquido_en_punta
-            pipette.aspirate(espacio_libre, tea_10.bottom(z=3))
+            pipette.aspirate(espacio_libre, tea_10.bottom(z=15))
             liquido_en_punta = vol_max_p200
         pipette.dispense(v_tea10, plate[well].top(z=2))
-        pipette.touch_tip(v_offset=-3)
+        pipette.touch_tip(v_offset=-3, speed=5)
         protocol.delay(seconds=2)
         liquido_en_punta -= v_tea10
     pipette.drop_tip(trash)
@@ -166,17 +169,19 @@ def run(protocol: protocol_api.ProtocolContext):
             liquido_en_punta = 0
         if liquido_en_punta < (v_rf + 10):
             espacio_libre = vol_max_p200 - liquido_en_punta
-            pipette.aspirate(espacio_libre, fuente.bottom(z=3))
+            pipette.aspirate(espacio_libre, fuente.bottom(z=15))
             liquido_en_punta = vol_max_p200
         pipette.dispense(v_rf, plate[well].top(z=2))
-        pipette.touch_tip(v_offset=-3)
+        pipette.touch_tip(v_offset=-3, speed=5)
         protocol.delay(seconds=2)
         liquido_en_punta -= v_rf
     pipette.drop_tip(trash)
 
 
-    # --- 7. FINALIZACIÓN ---
+     # --- 7. FINALIZACIÓN ---
+    protocol.comment("Iniciando agitación...")
     h_s.set_and_wait_for_shake_speed(1000)
     protocol.delay(minutes=2)
-    h_s.deactivate_shaker() # SOLUCIÓN AL ERROR Attribute_Error
+    h_s.deactivate_shaker()
     h_s.open_labware_latch()
+    protocol.comment("Protocolo terminado.")
